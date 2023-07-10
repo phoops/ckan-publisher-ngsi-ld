@@ -1,0 +1,55 @@
+---
+image: golang:1.18-buster
+
+definitions:
+  steps:
+    - step: &lint-code
+        caches:
+          - gomodcache
+        name: Lint code
+        image: golangci/golangci-lint:v1.45.2
+        script:
+          - git config --global url."git@bitbucket.org:".insteadOf https://bitbucket.org/
+          - GOPRIVATE=bitbucket.org/phoops golangci-lint run -v
+    - step: &go-test
+        caches:
+          - gomodcache
+        name: Application test
+        script:
+          - git config --global url."git@bitbucket.org:".insteadOf https://bitbucket.org/
+          - go mod download
+          - go test -v ./...
+    - step: &docker-image
+        size: 2x
+        name: Docker image
+        script:
+          - eval $(ssh-agent)
+          - docker login https://nexus.phoops.it/ --username $DOCKER_USERNAME --password $DOCKER_PASSWORD
+          - sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+          - git config --global url."git@bitbucket.org:".insteadOf https://bitbucket.org/
+          - git status
+          - go mod download
+          - go mod tidy
+          - go mod vendor
+          - git status
+          - docker build -f docker/nurse.dockerfile . -t nexus.phoops.it/phoops/odala-mt-nurse:${BITBUCKET_TAG}
+          - docker push nexus.phoops.it/phoops/odala-mt-nurse:${BITBUCKET_TAG}
+        services:
+          - docker
+  caches:
+    gomodcache: /go
+  services:
+    docker:
+      memory: 4096
+
+pipelines:
+  tags:
+    v*:
+      - step: *lint-code
+      - step: *go-test
+      - step: *docker-image
+
+  default:
+    - parallel:
+        - step: *lint-code
+        - step: *go-test

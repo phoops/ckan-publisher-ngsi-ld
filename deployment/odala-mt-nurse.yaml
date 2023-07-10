@@ -1,0 +1,41 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: odala-mt-nurse-job
+spec:
+  schedule: "*/15 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: nurse
+              env:
+                - name: BROKER_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: odala-mt-nurse-config
+                      key: BROKER_URL
+                - name: KAFKA_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: odala-mt-nurse-config
+                      key: KAFKA_URL
+                - name: KAFKA_TOPIC
+                  valueFrom:
+                    configMapKeyRef:
+                      name: odala-mt-nurse-config
+                      key: KAFKA_TOPIC
+                - name: KAFKA_CONSUMER_GROUP
+                  valueFrom:
+                    configMapKeyRef:
+                      name: odala-mt-nurse-config
+                      key: KAFKA_CONSUMER_GROUP
+                - name: DEFAULT_VEHICLE_SPEED
+                  valueFrom:
+                    configMapKeyRef:
+                      name: odala-mt-nurse-config
+                      key: DEFAULT_VEHICLE_SPEED
+              image: odala-mt-nurse:v0.1.0
+          restartPolicy: OnFailure
