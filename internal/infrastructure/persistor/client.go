@@ -77,7 +77,7 @@ func (c *Client) GetLastUpdate(ctx context.Context) (time.Time, error) {
 
 	records := data["result"].(map[string]interface{})["records"].([]interface{})
 	if len(records) == 0 {
-		c.logger.Info(fmt.Sprintf("no record found in CKAN. Beginning from %s minutes ago", c.interval))
+		c.logger.Info(fmt.Sprintf("no record found in CKAN. Beginning from %d minutes ago", c.interval))
 		return time.Now().Add( - time.Duration(-c.interval * 2) * time.Minute), nil
 	}
 	record := records[0].(map[string]interface{})
