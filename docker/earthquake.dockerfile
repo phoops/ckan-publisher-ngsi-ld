@@ -7,7 +7,7 @@ RUN git config --global url."git@bitbucket.org:phoops".insteadOf "https://bitbuc
 
 COPY . /app
 RUN go mod download
-RUN CGO_ENABLED=0 go build ./cmd/nurse
+RUN CGO_ENABLED=0 go build ./cmd/earthquake
 RUN ls -lah . && chmod +x earthquake && pwd
 
 FROM alpine
