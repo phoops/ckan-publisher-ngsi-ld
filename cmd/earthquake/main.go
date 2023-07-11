@@ -39,7 +39,7 @@ func main() {
 	}
 
 	// CKAN Persistor
-	persistor, err := persistor.NewClient(logger, conf.CkanURL, conf.CkanDatastore, conf.CkanKey)
+	persistor, err := persistor.NewClient(logger, conf.CkanURL, conf.CkanDatastore, conf.CkanKey, conf.MinutesToAggregate)
 	if err != nil {
 		errMsg := errors.Wrap(err, "cannot create data persistor").Error()
 		logger.Fatal(errMsg)

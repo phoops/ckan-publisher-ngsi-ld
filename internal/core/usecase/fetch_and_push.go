@@ -113,7 +113,7 @@ func (fp *FetchAndPush) AggregateAndConvert(vechicles entities.Vehicles) ([]enti
 				Coordinate1:      v.Location.Value.Coordinates[1], //they are inverted because of the mt problem (check readme)
 				Coordinate2:      v.Location.Value.Coordinates[0],
 				BeginObservation: beginDate,
-				EndObservation:   beginDate.Add(14*time.Minute + 59*time.Second),
+				EndObservation:   beginDate.Add(time.Duration(fp.aggregateInterval - 1)*time.Minute + 59*time.Second),
 				Count:            0,
 			}
 		}

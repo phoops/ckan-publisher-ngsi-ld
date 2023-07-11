@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
-
 
 	entities "bitbucket.org/phoops/odala-mt-earthquake/internal/core/entities"
 	"github.com/pkg/errors"
@@ -19,9 +19,10 @@ type Client struct {
 	baseURL   string
 	dataStore string
 	key       string
+	interval  int
 }
 
-func NewClient(logger *zap.SugaredLogger, baseURL string, dataStore string, key string) (*Client, error) {
+func NewClient(logger *zap.SugaredLogger, baseURL string, dataStore string, key string, interval int) (*Client, error) {
 	if logger == nil || baseURL == "" || dataStore == "" || key == "" {
 		return nil, errors.New("all parameters must be non-nil")
 	}
@@ -32,6 +33,7 @@ func NewClient(logger *zap.SugaredLogger, baseURL string, dataStore string, key 
 		baseURL,
 		dataStore,
 		key,
+		interval,
 	}, nil
 }
 
@@ -75,8 +77,8 @@ func (c *Client) GetLastUpdate(ctx context.Context) (time.Time, error) {
 
 	records := data["result"].(map[string]interface{})["records"].([]interface{})
 	if len(records) == 0 {
-		c.logger.Info("no data found on CKAN. Begin updating from one day ago")
-		return time.Now().AddDate(0, 0, -1), nil
+		c.logger.Info(fmt.Sprintf("no record found in CKAN. Beginning from %s minutes ago", c.interval))
+		return time.Now().Add( - time.Duration(-c.interval * 2) * time.Minute), nil
 	}
 	record := records[0].(map[string]interface{})
 	bucketStartTimestamp := record["endObservation"].(string)
