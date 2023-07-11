@@ -61,7 +61,7 @@ func (c *Client) GetLastUpdate(ctx context.Context) (time.Time, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		c.logger.Fatal("error reading data from CKAN", "code", resp.StatusCode)
+		c.logger.Fatal("error reading data from CKAN. Code: ", resp.StatusCode)
 		return time.Now(), errors.New("error reading data from CKAN")
 	}
 	
@@ -121,7 +121,7 @@ func (c *Client) WriteData(ctx context.Context, data []entities.GateCount) error
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		c.logger.Errorw("can't write data", "code", resp.StatusCode)
+		c.logger.Errorw("can't write data. Code: ", resp.StatusCode)
 		return errors.Wrap(err, "can't  write data")
 	}
 
