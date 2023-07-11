@@ -9,10 +9,11 @@ import (
 )
 
 type EarthquakeConfig struct {
-	BrokerURL     string `required:"true" split_words:"true"`
-	CkanURL       string `envconfig:"CKAN_URL"`
-	CkanDatastore string `envconfig:"CKAN_DATASTORE_ID"`
-	CkanKey       string `envconfig:"CKAN_API_KEY"`
+	BrokerURL          string `required:"true" split_words:"true"`
+	CkanURL            string `envconfig:"CKAN_URL"`
+	CkanDatastore      string `envconfig:"CKAN_DATASTORE_ID"`
+	CkanKey            string `envconfig:"CKAN_API_KEY"`
+	MinutesToAggregate int    `envconfig:"MINUTES_TO_AGGREGATE"`
 }
 
 func (s EarthquakeConfig) String() string {
@@ -21,13 +22,13 @@ func (s EarthquakeConfig) String() string {
 		CkanURL: %s,
 		CkanDatastore: %s,
 		CkanKey: beginning with %s,
-	`, s.BrokerURL, s.CkanURL, s.CkanDatastore, s.CkanKey[:5],
+		MinutesToAggregate: %d
+	`, s.BrokerURL, s.CkanURL, s.CkanDatastore, s.CkanKey[:5], s.MinutesToAggregate,
 	)
 }
 
 func LoadEarthquakeConfig() (*EarthquakeConfig, error) {
 	err := godotenv.Load(".env.example")
-	//err := godotenv.Load() TODO use this on production
 
 	if err != nil {
 		log.Printf("could not load configuration from .env file: %v", err)

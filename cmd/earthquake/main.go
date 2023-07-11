@@ -46,7 +46,7 @@ func main() {
 	}
 
 	// Usecase
-	fetchAndPush, err := usecase.NewFetchAndPush(logger, contextBrokerClient, persistor)
+	fetchAndPush, err := usecase.NewFetchAndPush(logger, contextBrokerClient, persistor, conf.MinutesToAggregate)
 	if err != nil {
 		errMsg := errors.Wrap(err, "cannot create usecase").Error()
 		logger.Fatal(errMsg)

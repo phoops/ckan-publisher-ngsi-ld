@@ -2,8 +2,8 @@ package usecase
 
 import (
 	"context"
-	"time"
 	"regexp"
+	"time"
 
 	entities "bitbucket.org/phoops/odala-mt-earthquake/internal/core/entities"
 	ngsild "bitbucket.org/phoops/odala-mt-earthquake/internal/infrastructure/ngsi-ld"
@@ -21,17 +21,19 @@ type DataPersistor interface {
 }
 
 type FetchAndPush struct {
-	logger    *zap.SugaredLogger
-	fetcher   DataFetcher
-	persistor DataPersistor
+	logger            *zap.SugaredLogger
+	fetcher           DataFetcher
+	persistor         DataPersistor
+	aggregateInterval int
 }
 
 func NewFetchAndPush(
 	logger *zap.SugaredLogger,
 	fetcher *ngsild.Client,
 	persistor DataPersistor,
+	aggregateInterval int,
 ) (*FetchAndPush, error) {
-	if logger == nil || fetcher == nil || persistor == nil {
+	if logger == nil || fetcher == nil || persistor == nil || aggregateInterval <= 0 {
 		return nil, errors.New("all parameters must be non-nil")
 	}
 	logger = logger.With("usecase", "FetchAndPush")
@@ -40,6 +42,7 @@ func NewFetchAndPush(
 		logger,
 		fetcher,
 		persistor,
+		aggregateInterval,
 	}, nil
 }
 
@@ -52,14 +55,13 @@ func (fp *FetchAndPush) Execute(ctx context.Context) error {
 	}
 	beginDate := lastUpdate.Add(1 * time.Second)
 
-	if beginDate.After(time.Now().Add(15*time.Minute)) {
+	if beginDate.After(time.Now().Add(- time.Duration(fp.aggregateInterval) * time.Minute)) {
 		fp.logger.Infow("no new data", "begin date", beginDate)
 		return nil
 	}
 
-
 	fetchedData, err := fp.fetcher.FetchData(ctx, beginDate)
-	if err != nil{
+	if err != nil {
 		fp.logger.Errorw("can't fetch data", err)
 		return errors.Wrap(err, "can't fetch data")
 	}
@@ -89,8 +91,8 @@ func (fp *FetchAndPush) AggregateAndConvert(vechicles entities.Vehicles) ([]enti
 
 	for _, v := range vechicles {
 
-		beginDate := v.Location.ObservedAt.Truncate(15 * time.Minute)
-		
+		beginDate := v.Location.ObservedAt.Truncate(time.Duration(fp.aggregateInterval) * time.Minute)
+
 		matches := re.FindStringSubmatch(v.Description.Value)
 		if len(matches) != 3 {
 			fp.logger.Errorw("can't parse description. Skipped", "description", v.Description.Value)
@@ -102,13 +104,13 @@ func (fp *FetchAndPush) AggregateAndConvert(vechicles entities.Vehicles) ([]enti
 		if countMap[v.Description.Value] == nil {
 			countMap[v.Description.Value] = make(map[time.Time]entities.GateCount)
 		}
-		
+
 		gateCount, exists := countMap[v.Description.Value][beginDate]
 		if !exists {
 			gateCount = entities.GateCount{
 				Parking:          parking,
 				Gate:             gate,
-				Coordinate1:      v.Location.Value.Coordinates[1],   //they are inverted because of the mt problem (check readme)
+				Coordinate1:      v.Location.Value.Coordinates[1], //they are inverted because of the mt problem (check readme)
 				Coordinate2:      v.Location.Value.Coordinates[0],
 				BeginObservation: beginDate,
 				EndObservation:   beginDate.Add(14*time.Minute + 59*time.Second),
@@ -117,14 +119,15 @@ func (fp *FetchAndPush) AggregateAndConvert(vechicles entities.Vehicles) ([]enti
 		}
 		gateCount.Count++
 		countMap[v.Description.Value][beginDate] = gateCount
-
 	}
 
 	var countColl []entities.GateCount
 
 	for _, innerMap := range countMap {
 		for _, gateCount := range innerMap {
-			countColl = append(countColl, gateCount)
+			if gateCount.BeginObservation.Before(time.Now().Add(- time.Duration(fp.aggregateInterval) * time.Minute)) {
+				countColl = append(countColl, gateCount)
+			}
 		}
 	}
 
