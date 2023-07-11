@@ -2,40 +2,35 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: odala-mt-nurse-job
+  name: odala-mt-earthquake-job
 spec:
-  schedule: "*/15 * * * *"
+  schedule: "*/60 * * * *"
   jobTemplate:
     spec:
       template:
         spec:
           containers:
-            - name: nurse
+            - name: earthquake
               env:
                 - name: BROKER_URL
                   valueFrom:
                     configMapKeyRef:
-                      name: odala-mt-nurse-config
+                      name: odala-mt-eathquake-config
                       key: BROKER_URL
-                - name: KAFKA_URL
+                - name: CKAN_URL
                   valueFrom:
                     configMapKeyRef:
-                      name: odala-mt-nurse-config
-                      key: KAFKA_URL
-                - name: KAFKA_TOPIC
+                      name: odala-mt-eathquake-config
+                      key: CKAN_URL
+                - name: CKAN_DATASTORE_ID
                   valueFrom:
                     configMapKeyRef:
-                      name: odala-mt-nurse-config
-                      key: KAFKA_TOPIC
-                - name: KAFKA_CONSUMER_GROUP
+                      name: odala-mt-eathquake-config
+                      key: CKAN_DATASTORE_ID
+                - name: CKAN_API_KEY
                   valueFrom:
                     configMapKeyRef:
-                      name: odala-mt-nurse-config
-                      key: KAFKA_CONSUMER_GROUP
-                - name: DEFAULT_VEHICLE_SPEED
-                  valueFrom:
-                    configMapKeyRef:
-                      name: odala-mt-nurse-config
-                      key: DEFAULT_VEHICLE_SPEED
-              image: odala-mt-nurse:v0.1.0
+                      name: odala-mt-eathquake-config
+                      key: CKAN_API_KEY
+              image: odala-mt-eathquake:v0.1.0
           restartPolicy: OnFailure

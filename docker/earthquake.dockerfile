@@ -8,18 +8,18 @@ RUN git config --global url."git@bitbucket.org:phoops".insteadOf "https://bitbuc
 COPY . /app
 RUN go mod download
 RUN CGO_ENABLED=0 go build ./cmd/nurse
-RUN ls -lah . && chmod +x nurse && pwd
+RUN ls -lah . && chmod +x earthquake && pwd
 
 FROM alpine
 
 LABEL maintainer="Phoops info@phoops.it"
 LABEL environment="production"
-LABEL project="odala-mt-nurse"
+LABEL project="odala-mt-earthquake"
 
 RUN apk update && apk add --no-cache tzdata
 
 
 WORKDIR /app
-COPY --from=builder /app/nurse /app
+COPY --from=builder /app/earthquake /app
 
-CMD ["./nurse"]
+CMD ["./earthquake"]

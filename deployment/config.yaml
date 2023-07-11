@@ -2,10 +2,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-    name: odala-mt-nurse-config
+    name: odala-mt-earthquake-config
 data:
-    BROKER_URL=http://localhost:9090
-    KAFKA_URL=localhost:9092
-    KAFKA_TOPIC=gates-presence
-    KAFKA_CONSUMER_GROUP=nurse-test
-    DEFAULT_VEHICLE_SPEED=15
+    BROKER_URL: http://localhost:9090
+    CKAN_URL: https://dati.toscana.it
+    CKAN_DATASTORE_ID: 536efa03-31e1-4ed2-ae49-ed31905b26ea
+    CKAN_API_KEY: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx

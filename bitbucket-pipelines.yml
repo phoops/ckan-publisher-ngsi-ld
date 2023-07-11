@@ -32,8 +32,8 @@ definitions:
           - go mod tidy
           - go mod vendor
           - git status
-          - docker build -f docker/nurse.dockerfile . -t nexus.phoops.it/phoops/odala-mt-nurse:${BITBUCKET_TAG}
-          - docker push nexus.phoops.it/phoops/odala-mt-nurse:${BITBUCKET_TAG}
+          - docker build -f docker/earthquake.dockerfile . -t nexus.phoops.it/phoops/odala-mt-earthquake:${BITBUCKET_TAG}
+          - docker push nexus.phoops.it/phoops/odala-mt-earthquake:${BITBUCKET_TAG}
         services:
           - docker
   caches:
