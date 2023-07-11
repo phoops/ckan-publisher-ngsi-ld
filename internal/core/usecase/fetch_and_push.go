@@ -57,12 +57,14 @@ func (fp *FetchAndPush) Execute(ctx context.Context) error {
 		return nil
 	}
 
+
+
 	fetchedData, err := fp.fetcher.FetchData(ctx, beginDate)
 	if err != nil{
 		fp.logger.Errorw("can't fetch data", err)
 		return errors.Wrap(err, "can't fetch data")
 	}
-	fp.logger.Infow("fetched data", "count", len(fetchedData))
+	fp.logger.Infow("fetched data", "count", len(fetchedData), "begin date", beginDate)
 
 	vechicleRecords, err := fp.AggregateAndConvert(fetchedData)
 	if err != nil {

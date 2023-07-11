@@ -49,7 +49,9 @@ func (c *Client) FetchData(ctx context.Context, beginDate time.Time) (entities.V
 	encodedDatetime := url.QueryEscape(beginDate.Format("2006-01-02T15:04:05Z"))
 	queryParams := url.Values{}
 	queryParams.Add("type", "Vehicle")
+	queryParams.Add("limit", "1000")
 	queryParams.Add("q", fmt.Sprintf("location.observedAt>=%s", encodedDatetime))
+
 	url := fmt.Sprintf("%s//ngsi-ld/v1/entities/?%s", c.baseURL, queryParams.Encode())
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+
 	entities "bitbucket.org/phoops/odala-mt-earthquake/internal/core/entities"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -40,7 +41,7 @@ func (c *Client) GetLastUpdate(ctx context.Context) (time.Time, error) {
 	reqBody := entities.ReadRecordBody{
 		ResourceId: c.dataStore,
 		Limit:      1,
-		Sort:       "begin_observation desc",
+		Sort:       "endObservation desc",
 	}
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
@@ -59,18 +60,13 @@ func (c *Client) GetLastUpdate(ctx context.Context) (time.Time, error) {
 		return time.Now(), errors.Wrap(err, "can't  write data")
 	}
 	defer resp.Body.Close()
-
-	respBodyBytes, _ := ioutil.ReadAll(resp.Body)
-
-	if resp.StatusCode == 409 {
-		c.logger.Info("no data found. Begin from one day ago") //TODO change to one year?
-		return time.Now().AddDate(0, 0, -1), nil
-	}
 	if resp.StatusCode != http.StatusOK {
-		c.logger.Fatal("error reading data from CKAN")
+		c.logger.Fatal("error reading data from CKAN", "code", resp.StatusCode)
 		return time.Now(), errors.New("error reading data from CKAN")
 	}
+	
 	var data map[string]interface{}
+	respBodyBytes, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal([]byte(respBodyBytes), &data)
 	if err != nil {
 		c.logger.Fatalw("can't unmarshal response body", "err", err)
@@ -78,15 +74,19 @@ func (c *Client) GetLastUpdate(ctx context.Context) (time.Time, error) {
 	}
 
 	records := data["result"].(map[string]interface{})["records"].([]interface{})
+	if len(records) == 0 {
+		c.logger.Info("no data found on CKAN. Begin updating from one day ago")
+		return time.Now().AddDate(0, 0, -1), nil
+	}
 	record := records[0].(map[string]interface{})
-	bucketStartTimestamp := record["observedAt"].(string)
+	bucketStartTimestamp := record["endObservation"].(string)
 	t, err := time.Parse("2006-01-02T15:04:05", bucketStartTimestamp)
 	if err != nil {
-		c.logger.Errorw("can't parse observedAt", "err", err)
-		return time.Now(), errors.Wrap(err, "can't parse observedAt")
+		c.logger.Errorw("can't parse endObservation", "err", err)
+		return time.Now(), errors.Wrap(err, "can't parse endObservation")
 	}
 
-	c.logger.Infow("updating from last date", "date", t)
+	c.logger.Infow("updating from last date", "last date found in CKAN", t)
 
 	return t, nil
 }
