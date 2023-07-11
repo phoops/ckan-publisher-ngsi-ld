@@ -40,9 +40,8 @@ func (c *Client) GetLastUpdate(ctx context.Context) (time.Time, error) {
 	reqBody := entities.ReadRecordBody{
 		ResourceId: c.dataStore,
 		Limit:      1,
-		Sort:       "observedAt",
+		Sort:       "begin_observation desc",
 	}
-
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
 		c.logger.Errorw("can't marshal request body", "err", err)
@@ -61,30 +60,33 @@ func (c *Client) GetLastUpdate(ctx context.Context) (time.Time, error) {
 	}
 	defer resp.Body.Close()
 
-	respBody := resp.Body
-	bodyBytes, _ = ioutil.ReadAll(respBody)
+	respBodyBytes, _ := ioutil.ReadAll(resp.Body)
 
+	if resp.StatusCode == 409 {
+		c.logger.Info("no data found. Begin from one day ago") //TODO change to one year?
+		return time.Now().AddDate(0, 0, -1), nil
+	}
+	if resp.StatusCode != http.StatusOK {
+		c.logger.Fatal("error reading data from CKAN")
+		return time.Now(), errors.New("error reading data from CKAN")
+	}
 	var data map[string]interface{}
-	err = json.Unmarshal([]byte(bodyBytes), &data)
+	err = json.Unmarshal([]byte(respBodyBytes), &data)
 	if err != nil {
 		c.logger.Fatalw("can't unmarshal response body", "err", err)
 		return time.Now(), errors.Wrap(err, "can't unmarshal response body")
 	}
 
 	records := data["result"].(map[string]interface{})["records"].([]interface{})
-	if len(records) == 0 {
-		c.logger.Infow("no records found. Begin from one year ago")
-		return time.Now().AddDate(0, 0, -1), nil //TODO change to one year?
-	}
 	record := records[0].(map[string]interface{})
 	bucketStartTimestamp := record["observedAt"].(string)
-
 	t, err := time.Parse("2006-01-02T15:04:05", bucketStartTimestamp)
-
 	if err != nil {
 		c.logger.Errorw("can't parse observedAt", "err", err)
 		return time.Now(), errors.Wrap(err, "can't parse observedAt")
 	}
+
+	c.logger.Infow("updating from last date", "date", t)
 
 	return t, nil
 }
@@ -119,7 +121,7 @@ func (c *Client) WriteData(ctx context.Context, data []entities.GateCount) error
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		c.logger.Errorw("can't write data", "err", err)
+		c.logger.Errorw("can't write data", "code", resp.StatusCode)
 		return errors.Wrap(err, "can't  write data")
 	}
 

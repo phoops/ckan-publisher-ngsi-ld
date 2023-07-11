@@ -6,7 +6,8 @@ import "time"
 type GateCount struct {
 	Parking          string    `json:"parking"`
 	Gate             string    `json:"gate"`
-	Coordinates      []float64 `json:"coordinates"`
+	Coordinate1      float64   `json:"coordinate1"`
+	Coordinate2      float64   `json:"coordinate2"`
 	BeginObservation time.Time `json:"beginObservation"`
 	EndObservation   time.Time `json:"endObservation"`
 	Count            int       `json:"count"`

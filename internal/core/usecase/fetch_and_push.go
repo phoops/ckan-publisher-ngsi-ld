@@ -53,7 +53,7 @@ func (fp *FetchAndPush) Execute(ctx context.Context) error {
 	beginDate := lastUpdate.Add(1 * time.Second)
 
 	if beginDate.After(time.Now().Add(15*time.Minute)) {
-		fp.logger.Infow("no new data", "try to set job interval less frequent", beginDate)
+		fp.logger.Infow("no new data", "begin date", beginDate)
 		return nil
 	}
 
@@ -62,6 +62,7 @@ func (fp *FetchAndPush) Execute(ctx context.Context) error {
 		fp.logger.Errorw("can't fetch data", err)
 		return errors.Wrap(err, "can't fetch data")
 	}
+	fp.logger.Infow("fetched data", "count", len(fetchedData))
 
 	vechicleRecords, err := fp.AggregateAndConvert(fetchedData)
 	if err != nil {
@@ -74,12 +75,12 @@ func (fp *FetchAndPush) Execute(ctx context.Context) error {
 		fp.logger.Errorw("can't write data", "error", err)
 		return errors.Wrap(err, "can't write data")
 	}
-	fp.logger.Infow("wrote data", "count", len(fetchedData))
+	fp.logger.Infow("agggregate data written", "count", len(vechicleRecords))
 
 	return nil
 }
 
-
+// Aggregate vehicles data by parking and gate and convert it to GateCount objects that will be stored in CKAN
 func (fp *FetchAndPush) AggregateAndConvert(vechicles entities.Vehicles) ([]entities.GateCount, error) {
 
 	countMap := make(map[string]map[time.Time]entities.GateCount)
@@ -96,20 +97,25 @@ func (fp *FetchAndPush) AggregateAndConvert(vechicles entities.Vehicles) ([]enti
 		}
 		parking := matches[1]
 		gate := matches[2]
+
+		if countMap[v.Description.Value] == nil {
+			countMap[v.Description.Value] = make(map[time.Time]entities.GateCount)
+		}
 		
 		gateCount, exists := countMap[v.Description.Value][beginDate]
 		if !exists {
 			gateCount = entities.GateCount{
-				Parking: parking,
-				Gate: gate,
-				Coordinates: v.Location.Value.Coordinates,
+				Parking:          parking,
+				Gate:             gate,
+				Coordinate1:      v.Location.Value.Coordinates[1],   //they are inverted because of the mt problem (check readme)
+				Coordinate2:      v.Location.Value.Coordinates[0],
 				BeginObservation: beginDate,
-				EndObservation: beginDate.Add(14 * time.Minute + 59 * time.Second),
-				Count: 0,
+				EndObservation:   beginDate.Add(14*time.Minute + 59*time.Second),
+				Count:            0,
 			}
-		} else {
-			gateCount.Count++
 		}
+		gateCount.Count++
+		countMap[v.Description.Value][beginDate] = gateCount
 
 	}
 
