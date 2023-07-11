@@ -58,7 +58,6 @@ func (fp *FetchAndPush) Execute(ctx context.Context) error {
 	}
 
 
-
 	fetchedData, err := fp.fetcher.FetchData(ctx, beginDate)
 	if err != nil{
 		fp.logger.Errorw("can't fetch data", err)
@@ -77,7 +76,7 @@ func (fp *FetchAndPush) Execute(ctx context.Context) error {
 		fp.logger.Errorw("can't write data", "error", err)
 		return errors.Wrap(err, "can't write data")
 	}
-	fp.logger.Infow("agggregate data written", "count", len(vechicleRecords))
+	fp.logger.Infow("aggregate data written", "count", len(vechicleRecords))
 
 	return nil
 }
