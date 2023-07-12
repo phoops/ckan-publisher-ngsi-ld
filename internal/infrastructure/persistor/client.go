@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -77,8 +76,8 @@ func (c *Client) GetLastUpdate(ctx context.Context) (time.Time, error) {
 
 	records := data["result"].(map[string]interface{})["records"].([]interface{})
 	if len(records) == 0 {
-		c.logger.Info(fmt.Sprintf("no record found in CKAN. Beginning from %d minutes ago", c.interval))
-		return time.Now().Add( - time.Duration(-c.interval * 2) * time.Minute), nil
+		c.logger.Info("no record found in CKAN. Beginning from one day ago")
+		return time.Now().Add(- 24 * time.Hour), nil
 	}
 	record := records[0].(map[string]interface{})
 	bucketStartTimestamp := record["endObservation"].(string)

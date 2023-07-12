@@ -43,7 +43,7 @@ func NewClient(logger *zap.SugaredLogger, baseURL string) (*Client, error) {
 
 
 // Reads vehicles on the broker observed after beginDate
-func (c *Client) FetchData(ctx context.Context, beginDate time.Time) (entities.Vehicles, error) {
+func (c *Client) FetchData(ctx context.Context, beginDate time.Time, offset int) (entities.Vehicles, error) {
 
 	// create request
 	encodedDatetime := url.QueryEscape(beginDate.Format("2006-01-02T15:04:05Z"))
@@ -51,6 +51,7 @@ func (c *Client) FetchData(ctx context.Context, beginDate time.Time) (entities.V
 	queryParams.Add("type", "Vehicle")
 	queryParams.Add("limit", "1000")
 	queryParams.Add("q", fmt.Sprintf("location.observedAt>=%s", encodedDatetime))
+	queryParams.Add("offset", fmt.Sprintf("%d", offset))
 
 	url := fmt.Sprintf("%s//ngsi-ld/v1/entities/?%s", c.baseURL, queryParams.Encode())
 	req, err := http.NewRequest(http.MethodGet, url, nil)

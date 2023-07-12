@@ -12,7 +12,7 @@ import (
 )
 
 type DataFetcher interface {
-	FetchData(ctx context.Context, beginData time.Time) (entities.Vehicles, error)
+	FetchData(ctx context.Context, beginData time.Time, offset int) (entities.Vehicles, error)
 }
 
 type DataPersistor interface {
@@ -48,31 +48,55 @@ func NewFetchAndPush(
 
 func (fp *FetchAndPush) Execute(ctx context.Context) error {
 
+	// get last update from CKAN
 	lastUpdate, err := fp.persistor.GetLastUpdate(ctx)
+	fp.logger.Infow("last update", "date", lastUpdate)
 	if err != nil {
 		fp.logger.Errorw("can't get last update", "error", err)
 		return errors.Wrap(err, "can't get last update")
 	}
 	beginDate := lastUpdate.Add(1 * time.Second)
-
 	if beginDate.After(time.Now().Add(- time.Duration(fp.aggregateInterval) * time.Minute)) {
 		fp.logger.Infow("no new data", "begin date", beginDate)
 		return nil
 	}
 
-	fetchedData, err := fp.fetcher.FetchData(ctx, beginDate)
-	if err != nil {
-		fp.logger.Errorw("can't fetch data", err)
-		return errors.Wrap(err, "can't fetch data")
-	}
-	fp.logger.Infow("fetched data", "count", len(fetchedData), "begin date", beginDate)
 
-	vechicleRecords, err := fp.AggregateAndConvert(fetchedData)
-	if err != nil {
-		fp.logger.Errorw("can't aggregate and convert data", "error", err)
-		return errors.Wrap(err, "can't aggregate and convert data")
+	// fetch data from broker
+	offset := 0	// used because the API returns only 1000 records at a time
+	countMap := make(map[string]map[time.Time]entities.GateCount)
+
+	for {
+		fetchedData, err := fp.fetcher.FetchData(ctx, beginDate, offset)
+		if err != nil {
+			fp.logger.Errorw("can't fetch data", err)
+			return errors.Wrap(err, "can't fetch data")
+		}
+		fp.logger.Infow("fetched data", "begin date", beginDate, "count", len(fetchedData), "offset", offset)
+
+		countMap, err = fp.Aggregate(fetchedData, countMap)
+		if err != nil {
+			fp.logger.Errorw("can't aggregate and convert data", "error", err)
+			return errors.Wrap(err, "can't aggregate and convert data")
+		}
+
+		if len(fetchedData) < 1000 {
+			break
+		}
+		offset += 1000
 	}
 
+	// convert map to slice
+	var vechicleRecords []entities.GateCount
+	for _, innerMap := range countMap {
+		for _, gateCount := range innerMap {
+			if gateCount.BeginObservation.Before(time.Now().Add(- time.Duration(fp.aggregateInterval) * time.Minute)) {
+				vechicleRecords = append(vechicleRecords, gateCount)
+			}
+		}
+	}
+
+	// write data
 	err = fp.persistor.WriteData(ctx, vechicleRecords)
 	if err != nil {
 		fp.logger.Errorw("can't write data", "error", err)
@@ -84,9 +108,8 @@ func (fp *FetchAndPush) Execute(ctx context.Context) error {
 }
 
 // Aggregate vehicles data by parking and gate and convert it to GateCount objects that will be stored in CKAN
-func (fp *FetchAndPush) AggregateAndConvert(vechicles entities.Vehicles) ([]entities.GateCount, error) {
+func (fp *FetchAndPush) Aggregate(vechicles entities.Vehicles, countMap map[string]map[time.Time]entities.GateCount) (map[string]map[time.Time]entities.GateCount, error) {
 
-	countMap := make(map[string]map[time.Time]entities.GateCount)
 	re := regexp.MustCompile(`Parking: (\S+), Gate: (\S+)`)
 
 	for _, v := range vechicles {
@@ -121,15 +144,7 @@ func (fp *FetchAndPush) AggregateAndConvert(vechicles entities.Vehicles) ([]enti
 		countMap[v.Description.Value][beginDate] = gateCount
 	}
 
-	var countColl []entities.GateCount
 
-	for _, innerMap := range countMap {
-		for _, gateCount := range innerMap {
-			if gateCount.BeginObservation.Before(time.Now().Add(- time.Duration(fp.aggregateInterval) * time.Minute)) {
-				countColl = append(countColl, gateCount)
-			}
-		}
-	}
-
-	return countColl, nil
+	return countMap, nil
 }
+
