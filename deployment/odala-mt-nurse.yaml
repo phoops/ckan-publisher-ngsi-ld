@@ -1,0 +1,36 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: odala-mt-earthquake-job
+spec:
+  schedule: "*/60 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: earthquake
+              env:
+                - name: BROKER_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: odala-mt-eathquake-config
+                      key: BROKER_URL
+                - name: CKAN_URL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: odala-mt-eathquake-config
+                      key: CKAN_URL
+                - name: CKAN_DATASTORE_ID
+                  valueFrom:
+                    configMapKeyRef:
+                      name: odala-mt-eathquake-config
+                      key: CKAN_DATASTORE_ID
+                - name: CKAN_API_KEY
+                  valueFrom:
+                    configMapKeyRef:
+                      name: odala-mt-eathquake-config
+                      key: CKAN_API_KEY
+              image: odala-mt-eathquake:v0.1.0
+          restartPolicy: OnFailure
