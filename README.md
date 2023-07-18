@@ -3,9 +3,8 @@
 ## Description
 A job to take Vehicle data from NGSI-LD Broker, aggregates it and sends it to a CKAN Datastore.
 
+NOTE: Coordinates are swapped in the Scorpio Broker, so I swapped them back before sending them to the CKAN
 
-NOTE 1: Coordinates are swapped in the Scorpio Broker, so I swapped them back before sending them to the CKAN
-NOTE 2: Scorpio Broker has a limit to 1000 element per request. Maybe there is a workaround for this.
 
 ## Before Running First Time
 
