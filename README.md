@@ -1,7 +1,7 @@
 # Earthquake
 
 ## Description
-A job to take Vehicle data from Scorpio Broker, aggregates it and sends it to Scorpio Broker.
+A job to take Vehicle data from NGSI-LD Broker, aggregates it and sends it to a CKAN Datastore.
 
 
 NOTE 1: Coordinates are swapped in the Scorpio Broker, so I swapped them back before sending them to the CKAN
